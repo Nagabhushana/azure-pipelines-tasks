@@ -10,6 +10,17 @@ param(
 
 $ErrorActionPreference = 'Stop'
 Add-Type -Assembly 'System.IO.Compression.FileSystem'
+Add-Type -AssemblyName 'System.Text.Encoding'
+
+class PathSeparatorEncoder : System.Text.UTF8Encoding {
+    PathSeparatorEncoder() : base($true) { }
+
+    [byte[]] GetBytes([string] $s)
+    {
+        $s = $s.Replace("\", "/");
+        return ([System.Text.UTF8Encoding]$this).GetBytes($s);
+    }
+}
 
 # Wrap in a try/catch so exceptions will bubble from calls to .Net methods
 try {
@@ -33,7 +44,7 @@ try {
                 New-Item $nuspecFile -ItemType File -Value "<?xml version=""1.0"" encoding=""utf-8""?><package xmlns=""http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd""><metadata><id>$($_.Name)</id><version>0.0.0</version><authors>Microsoft</authors><copyright>© Microsoft Corporation. All rights reserved.</copyright></metadata></package>"
                 
                 # Create the zip
-                [System.IO.Compression.ZipFile]::CreateFromDirectory($sourceDir, "$targetDir\task.zip")
+                [System.IO.Compression.ZipFile]::CreateFromDirectory($sourceDir, "$targetDir/task.zip", [System.IO.Compression.CompressionLevel]::Optimal, $false, [PathSeparatorEncoder]::new())
             }
     } else {
         # Create the target directory.
@@ -43,7 +54,7 @@ try {
         }
 
         # Create the zip.
-        [System.IO.Compression.ZipFile]::CreateFromDirectory($SourceRoot, $TargetPath)
+        [System.IO.Compression.ZipFile]::CreateFromDirectory($SourceRoot, $TargetPath, [System.IO.Compression.CompressionLevel]::Optimal, $false, [PathSeparatorEncoder]::new())
     }
 } catch {
     throw $_
